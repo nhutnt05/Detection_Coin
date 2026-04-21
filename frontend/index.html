@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto Logo Detector</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header>
+      <div class="logo">₿ CryptoVision</div>
+      <p class="subtitle">Upload an image to detect cryptocurrency logos</p>
+    </header>
+
+    <!-- Upload Section -->
+    <section class="upload-section">
+
+      <!-- Mode Tabs -->
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tabUpload">📁 Upload</button>
+        <button class="mode-tab" id="tabCamera">📷 Camera</button>
+      </div>
+
+      <!-- Upload Panel -->
+      <div id="panelUpload">
+        <div class="drop-zone" id="dropZone">
+          <div class="drop-icon">📁</div>
+          <p>Drag & drop an image or <label for="fileInput" class="browse-link">browse</label></p>
+          <input type="file" id="fileInput" accept="image/*" hidden />
+          <p class="drop-hint">Supports JPG, PNG, WEBP</p>
+        </div>
+        <div class="preview-wrap" id="previewWrap" style="display:none">
+          <img id="previewImg" alt="Preview" />
+          <button class="btn-clear" id="clearBtn">✕ Clear</button>
+        </div>
+      </div>
+
+      <!-- Camera Panel — Realtime Detection -->
+      <div id="panelCamera" style="display:none">
+        <div class="camera-wrap" id="cameraWrap">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <!-- Overlay bounding boxes drawn here -->
+          <canvas id="overlayCanvas"></canvas>
+          <!-- Status badge -->
+          <div class="rt-badge" id="rtBadge">
+            <span class="rt-dot"></span>
+            <span id="rtStatus">Đang khởi động...</span>
+          </div>
+          <!-- Controls -->
+          <div class="rt-controls">
+            <button class="btn-rt" id="btnStartRT">▶ Bắt đầu</button>
+            <button class="btn-rt btn-rt-stop" id="btnStopRT" style="display:none">⏹ Dừng</button>
+          </div>
+        </div>
+        <canvas id="snapCanvas" style="display:none"></canvas>
+      </div>
+
+      <button class="btn-detect" id="detectBtn" disabled>🔍 Detect Coins</button>
+    </section>
+
+    <!-- Loading -->
+    <div class="loader" id="loader" style="display:none">
+      <div class="spinner"></div>
+      <p>Analyzing image &amp; fetching live data…</p>
+    </div>
+
+    <!-- Results -->
+    <section class="results" id="results" style="display:none">
+      <!-- Annotated Image -->
+      <div class="annotated-wrap">
+        <h2>Detection Result</h2>
+        <img id="annotatedImg" alt="Annotated" />
+      </div>
+
+      <!-- Total Portfolio -->
+      <div class="portfolio-banner" id="portfolioBanner">
+        <div>
+          <span class="portfolio-label">Total Portfolio Value</span>
+          <div class="portfolio-breakdown" id="portfolioBreakdown"></div>
+        </div>
+        <span class="portfolio-value" id="totalValue">$0.00</span>
+      </div>
+
+      <!-- Coin Cards -->
+      <div class="cards-grid" id="cardsGrid"></div>
+
+      <!-- AI Chatbot -->
+      <div class="chatbot-section" id="chatbotSection" style="display:none">
+        <div class="chatbot-header">
+          <span>🗨️</span>
+          <span class="chatbot-title">Hỏi AI về coin</span>
+          <div class="chatbot-coin-selector" id="chatCoinSelector"></div>
+        </div>
+
+        <div class="chat-suggestions" id="chatSuggestions">
+          <button class="chat-suggest-btn" data-q="Coin này có nên mua không?">💰 Có nên mua không?</button>
+          <button class="chat-suggest-btn" data-q="Phân tích xu hướng giá hiện tại">📈 Phân tích xu hướng</button>
+          <button class="chat-suggest-btn" data-q="Rủi ro khi đầu tư vào coin này là gì?">⚠️ Rủi ro đầu tư</button>
+          <button class="chat-suggest-btn" data-q="Giá hiện tại bao nhiêu?">💵 Giá hiện tại</button>
+        </div>
+
+        <div class="chat-answer" id="chatAnswer" style="display:none">
+          <div class="answer-label">💬 Trả lời:</div>
+          <div class="answer-text" id="answerText"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
