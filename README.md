@@ -1,4 +1,4 @@
-# 🪙 Crypto Logo Detection System
+# 🪙 Crypto Logo Detection System( ETH, SOL, LINK, BTC)
 
 Hệ thống phát hiện logo tiền điện tử sử dụng AI (YOLOv8) kết hợp với dữ liệu thị trường realtime và chatbot tư vấn.
 
