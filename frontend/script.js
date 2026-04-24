@@ -7,8 +7,10 @@ const API_URL = '/detect';
 // DOM refs
 const tabUpload       = document.getElementById('tabUpload');
 const tabCamera       = document.getElementById('tabCamera');
+const tabUrl          = document.getElementById('tabUrl');
 const panelUpload     = document.getElementById('panelUpload');
 const panelCamera     = document.getElementById('panelCamera');
+const panelUrl        = document.getElementById('panelUrl');
 const dropZone        = document.getElementById('dropZone');
 const fileInput       = document.getElementById('fileInput');
 const previewWrap     = document.getElementById('previewWrap');
@@ -26,23 +28,28 @@ const chartInstances = {};
 let selectedFile  = null;
 let cameraStream  = null;
 let currentMode   = 'upload';
+let selectedUrl   = null;   // URL mode
 
 // ── Mode Tabs ───────────────────────────────────────────────────────────────
 
 tabUpload.addEventListener('click', () => switchMode('upload'));
 tabCamera.addEventListener('click', () => switchMode('camera'));
+tabUrl.addEventListener('click', () => switchMode('url'));
 
 function switchMode(mode) {
   currentMode = mode;
   tabUpload.classList.toggle('active', mode === 'upload');
   tabCamera.classList.toggle('active', mode === 'camera');
+  tabUrl.classList.toggle('active', mode === 'url');
   panelUpload.style.display = mode === 'upload' ? 'block' : 'none';
   panelCamera.style.display = mode === 'camera' ? 'block' : 'none';
+  panelUrl.style.display = mode === 'url' ? 'block' : 'none';
 
   if (mode === 'camera') startCamera();
   else stopCamera();
 
   selectedFile = null;
+  selectedUrl = null;
   detectBtn.disabled = true;
   detectBtn.style.display = mode === 'camera' ? 'none' : 'block';
   hideResults();
@@ -221,6 +228,73 @@ function clearFile() {
   hideResults();
 }
 
+// ── URL Loading ──────────────────────────────────────────────────────────────
+
+const urlInput = document.getElementById('urlInput');
+const btnUrlLoad = document.getElementById('btnUrlLoad');
+const urlPreviewWrap = document.getElementById('urlPreviewWrap');
+const urlPreviewImg = document.getElementById('urlPreviewImg');
+const urlInputWrap = document.getElementById('urlInputWrap');
+const urlClearBtn = document.getElementById('urlClearBtn');
+
+btnUrlLoad.addEventListener('click', async () => {
+  const url = urlInput.value.trim();
+  if (!url) {
+    alert('Vui lòng nhập URL ảnh');
+    return;
+  }
+
+  btnUrlLoad.disabled = true;
+  btnUrlLoad.textContent = '⏳ Đang tải...';
+
+  try {
+    const resp = await fetch('/load-image-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+
+    if (!resp.ok) {
+      if (resp.status === 400) {
+        throw new Error('URL không hợp lệ hoặc không thể truy cập');
+      } else if (resp.status === 422) {
+        throw new Error('URL không chứa ảnh hợp lệ (JPG, PNG, WEBP)');
+      }
+      throw new Error(`Server error: ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    selectedUrl = data.url;
+    urlPreviewImg.src = data.url;
+    urlInputWrap.style.display = 'none';
+    urlPreviewWrap.style.display = 'block';
+    detectBtn.disabled = false;
+  } catch (err) {
+    alert(`Lỗi tải ảnh: ${err.message}`);
+    console.error(err);
+  } finally {
+    btnUrlLoad.disabled = false;
+    btnUrlLoad.textContent = 'Tải ảnh';
+  }
+});
+
+urlClearBtn.addEventListener('click', () => {
+  selectedUrl = null;
+  urlInput.value = '';
+  urlPreviewImg.src = '';
+  urlInputWrap.style.display = 'block';
+  urlPreviewWrap.style.display = 'none';
+  detectBtn.disabled = true;
+  hideResults();
+});
+
+// Allow Enter key to load URL
+urlInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    btnUrlLoad.click();
+  }
+});
+
 function hideResults() {
   results.style.display = 'none';
   cardsGrid.innerHTML = '';
@@ -231,17 +305,29 @@ function hideResults() {
 // ── Detection ────────────────────────────────────────────────────────────────
 
 detectBtn.addEventListener('click', async () => {
-  if (!selectedFile) return;
+  if (!selectedFile && !selectedUrl) return;
 
   loader.style.display = 'flex';
   results.style.display = 'none';
   detectBtn.disabled = true;
 
-  const formData = new FormData();
-  formData.append('image', selectedFile);
-
   try {
-    const resp = await fetch(API_URL, { method: 'POST', body: formData });
+    let resp;
+    
+    if (selectedFile) {
+      // File upload mode
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+      resp = await fetch(API_URL, { method: 'POST', body: formData });
+    } else if (selectedUrl) {
+      // URL mode - send to backend with URL
+      resp = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: selectedUrl }),
+      });
+    }
+    
     if (!resp.ok) throw new Error(`Server error: ${resp.status}`);
     const data = await resp.json();
     renderResults(data);

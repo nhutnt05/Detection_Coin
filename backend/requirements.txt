@@ -1,6 +1,6 @@
 flask
 flask-cors
-ultralytics
+ultralytics>=8.3.0
 opencv-python
 pillow
 requests

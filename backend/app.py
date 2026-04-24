@@ -151,19 +151,81 @@ def draw_boxes(image_np: np.ndarray, detections: list) -> str:
     return base64.b64encode(buffer).decode('utf-8')
 
 
-@app.route('/detect', methods=['POST'])
-def detect():
-    if 'image' not in request.files:
-        return jsonify({'error': 'No image provided'}), 400
-
-    img_bytes = request.files['image'].read()
+def load_image_from_bytes(img_bytes: bytes) -> np.ndarray:
+    """Load image from bytes and convert to OpenCV format"""
     pil_img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
-    # Resize nếu ảnh quá lớn (camera 4K+), giới hạn 1280px để YOLO xử lý tốt hơn
+    # Resize if too large (camera 4K+), cap at 1280px for better YOLO processing
     w, h = pil_img.size
     if max(w, h) > 1280:
         scale = 1280 / max(w, h)
         pil_img = pil_img.resize((int(w * scale), int(h * scale)), Image.LANCZOS)
-    img_np = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+    return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+
+
+@app.route('/load-image-url', methods=['POST'])
+def load_image_url():
+    """Validate and fetch image from URL"""
+    body = request.get_json()
+    if not body or 'url' not in body:
+        return jsonify({'error': 'URL not provided'}), 400
+
+    url = body.get('url', '').strip()
+    
+    # Validate URL format
+    if not url.startswith(('http://', 'https://')):
+        return jsonify({'error': 'Invalid URL format'}), 400
+
+    try:
+        # Fetch the image with timeout
+        resp = requests.get(url, headers=HEADERS, timeout=10, allow_redirects=True)
+        resp.raise_for_status()
+        
+        # Check content type
+        content_type = resp.headers.get('content-type', '').lower()
+        if not any(img_type in content_type for img_type in ['image/jpeg', 'image/png', 'image/webp']):
+            return jsonify({'error': 'URL does not point to a valid image (JPG, PNG, WEBP)'}), 422
+        
+        # Try to open image to validate it's valid
+        img_bytes = resp.content
+        pil_img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+        
+        # Return the URL if valid
+        return jsonify({'url': url}), 200
+    
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'URL request timed out'}), 400
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f'Cannot access URL: {str(e)}'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Invalid image format: {str(e)}'}), 422
+
+
+@app.route('/detect', methods=['POST'])
+def detect():
+    img_bytes = None
+    
+    # Try to get image from file upload or URL
+    if 'image' in request.files:
+        # File upload mode
+        img_bytes = request.files['image'].read()
+    else:
+        # Try JSON body with image_url
+        body = request.get_json()
+        if body and 'image_url' in body:
+            url = body.get('image_url', '').strip()
+            try:
+                resp = requests.get(url, headers=HEADERS, timeout=10, allow_redirects=True)
+                resp.raise_for_status()
+                img_bytes = resp.content
+            except Exception as e:
+                return jsonify({'error': f'Cannot fetch image from URL: {str(e)}'}), 400
+        else:
+            return jsonify({'error': 'No image provided (file or URL)'}), 400
+    
+    if not img_bytes:
+        return jsonify({'error': 'Failed to read image'}), 400
+    
+    img_np = load_image_from_bytes(img_bytes)
 
     # Run YOLO
     results = model(img_np, conf=0.15)[0]

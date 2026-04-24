@@ -22,6 +22,7 @@
       <div class="mode-tabs">
         <button class="mode-tab active" id="tabUpload">📁 Upload</button>
         <button class="mode-tab" id="tabCamera">📷 Camera</button>
+        <button class="mode-tab" id="tabUrl">🔗 URL</button>
       </div>
 
       <!-- Upload Panel -->
@@ -56,6 +57,29 @@
           </div>
         </div>
         <canvas id="snapCanvas" style="display:none"></canvas>
+      </div>
+
+      <!-- URL Panel -->
+      <div id="panelUrl" style="display:none">
+        <div class="url-input-wrap" id="urlInputWrap">
+          <div class="url-icon">🔗</div>
+          <p class="url-label">Dán link ảnh vào đây</p>
+          <div class="url-row">
+            <input
+              type="url"
+              id="urlInput"
+              placeholder="https://example.com/image.jpg"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button class="btn-url-load" id="btnUrlLoad">Tải ảnh</button>
+          </div>
+          <p class="url-hint">Hỗ trợ: JPG, PNG, WEBP từ bất kỳ URL công khai nào</p>
+        </div>
+        <div class="preview-wrap" id="urlPreviewWrap" style="display:none">
+          <img id="urlPreviewImg" alt="URL Preview" crossorigin="anonymous" />
+          <button class="btn-clear" id="urlClearBtn">✕ Clear</button>
+        </div>
       </div>
 
       <button class="btn-detect" id="detectBtn" disabled>🔍 Detect Coins</button>
